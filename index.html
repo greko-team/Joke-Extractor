@@ -1,346 +1,256 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anecdote Description Extractor</title>
-  
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; background: #0f0e0d; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      background: #0f0e0d;
+      background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,200,80,0.07) 0%, transparent 60%);
+      font-family: 'Lora', Georgia, serif;
+      padding: 40px 20px 60px;
+      color: rgba(255,255,255,0.9);
+    }
     textarea { resize: vertical; }
     textarea::placeholder { color: rgba(255,255,255,0.18); }
     textarea:focus { outline: none; border-color: rgba(255,200,80,0.35) !important; box-shadow: 0 0 0 3px rgba(255,200,80,0.05); }
     ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    .header { text-align: center; margin-bottom: 36px; }
+    .badge {
+      display: inline-block; font-size: 10px; font-family: 'DM Mono', monospace;
+      letter-spacing: 0.2em; color: rgba(255,200,80,0.6); text-transform: uppercase;
+      margin-bottom: 12px; background: rgba(255,200,80,0.07);
+      padding: 4px 14px; border-radius: 20px; border: 1px solid rgba(255,200,80,0.15);
+    }
+    h1 { font-size: clamp(26px,5vw,40px); font-weight: 600; color: rgba(255,255,255,0.92); line-height: 1.2; }
+    h1 span { color: rgba(255,200,80,0.85); }
+    .subtitle { margin-top: 12px; color: rgba(255,255,255,0.3); font-size: 13px; font-family: 'DM Mono', monospace; }
+    .main { max-width: 760px; margin: 0 auto 32px; }
+    textarea.input {
+      width: 100%; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
+      padding: 18px 20px; color: rgba(255,255,255,0.82);
+      font-size: 14px; line-height: 1.7; font-family: 'Lora', Georgia, serif;
+      transition: border-color 0.2s;
+    }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+    .left { display: flex; gap: 8px; }
+    .icon-btn {
+      border: 1px solid rgba(255,200,80,0.2); border-radius: 8px;
+      background: rgba(255,200,80,0.07); color: rgba(255,200,80,0.55);
+      cursor: pointer; padding: 7px 11px; font-size: 13px;
+      font-family: 'DM Mono', monospace; display: flex; align-items: center; gap: 6px;
+      transition: all 0.15s;
+    }
+    .icon-btn:hover { background: rgba(255,200,80,0.15); color: rgba(255,200,80,0.9); border-color: rgba(255,200,80,0.35); }
+    .go-btn {
+      background: rgb(255,200,80); border: none; border-radius: 10px;
+      color: #1a1500; cursor: pointer; width: 42px; height: 38px;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
+    }
+    .go-btn:disabled { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.2); cursor: not-allowed; }
+    .go-btn:not(:disabled):hover { background: rgb(255,215,100); }
+    .batches { max-width: 760px; margin: 0 auto; }
+    .batch {
+      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 18px; padding: 20px 20px 18px; margin-bottom: 16px;
+    }
+    .batch-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .batch-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,200,80,0.55); }
+    .close-btn {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px; color: rgba(255,255,255,0.35); cursor: pointer;
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; line-height: 1; transition: all 0.15s; padding: 0;
+    }
+    .close-btn:hover { background: rgba(255,80,80,0.15); border-color: rgba(255,80,80,0.3); color: rgba(255,120,120,0.9); }
+    .cards { display: flex; flex-direction: column; gap: 8px; }
+    .card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 7px;
+      position: relative; transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(255,200,80,0.25); }
+    .card-num { position: absolute; top: 10px; left: 13px; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,200,80,0.4); font-family: 'DM Mono', monospace; }
+    .card-first {
+      margin: 0 0 0 26px; font-size: 11.5px; line-height: 1.5;
+      color: rgba(255,255,255,0.28); font-style: italic; font-family: 'Lora', Georgia, serif;
+      padding-right: 32px; overflow: hidden; display: -webkit-box;
+      -webkit-line-clamp: 1; -webkit-box-orient: vertical;
+    }
+    .divider { height: 1px; background: linear-gradient(90deg, rgba(255,200,80,0.15), transparent); margin: 1px 0; }
+    .card-bottom { display: flex; align-items: flex-start; gap: 10px; }
+    .card-desc { margin: 0; flex: 1; font-size: 13.5px; line-height: 1.55; color: rgba(255,255,255,0.9); font-family: 'Lora', Georgia, serif; font-weight: 500; }
+    .copy-btn {
+      flex-shrink: 0; margin-top: 1px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 7px; color: rgba(255,255,255,0.4); cursor: pointer;
+      padding: 5px 7px; display: flex; align-items: center; gap: 4px;
+      font-size: 10px; font-family: 'DM Mono', monospace; transition: all 0.15s;
+    }
+    .copy-btn:hover { background: rgba(255,200,80,0.1); color: rgba(255,200,80,0.8); border-color: rgba(255,200,80,0.3); }
+    .copy-btn.copied { background: rgba(255,200,80,0.15); border-color: rgba(255,200,80,0.4); color: rgb(255,200,80); }
+    .footer-note { text-align: center; margin-top: 8px; font-size: 10px; font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.15); letter-spacing: 0.08em; }
   </style>
 </head>
 <body>
 
-  <div id="root"></div>
+<div class="header">
+  <div class="badge">Joke Parser</div>
+  <h1>Anecdote Description<br><span>Extractor</span></h1>
+  <p class="subtitle">Paste jokes → extract → copy descriptions with hashtags</p>
+</div>
 
-  <script type="text/babel">
-    const { useState, useCallback, useRef } = React;
+<div class="main">
+  <textarea class="input" id="input" rows="10" placeholder="Paste your anecdotes here..."></textarea>
+  <div class="toolbar">
+    <div class="left">
+      <button class="icon-btn" onclick="handlePaste()" title="Paste">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+        </svg>
+      </button>
+      <button class="icon-btn" onclick="handleClear()" title="Clear">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <button class="go-btn" id="goBtn" onclick="handleExtract()" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </button>
+  </div>
+</div>
 
-    const HASHTAGS = "#anecdote #jokes #humor";
+<div class="batches" id="batches"></div>
 
-    function parseJokes(text) {
-      const blocks = text.trim().split(/\n\s*\n/);
-      const jokes = [];
-      for (const block of blocks) {
-        const lines = block.trim().split("\n").map(l => l.trim()).filter(Boolean);
-        if (lines.length < 2) continue;
-        const description = lines[lines.length - 1];
-        const jokeLines = lines.slice(0, -1);
-        const firstLine = jokeLines[0] || "";
-        jokes.push({ firstLine, description, full: block });
+<script>
+const HASHTAGS = "#anecdote #jokes #humor";
+let batches = [];
+
+function parseJokes(text) {
+  const blocks = text.trim().split(/\n[ \t]*\n/).map(b => b.trim()).filter(Boolean);
+  const jokes = [];
+  let i = 0;
+
+  while (i < blocks.length) {
+    const curr = blocks[i];
+    const currLines = curr.split('\n').map(l => l.trim()).filter(Boolean);
+
+    // Check if next block is a short description (new format)
+    if (i + 1 < blocks.length) {
+      const next = blocks[i + 1];
+      const nextLines = next.split('\n').map(l => l.trim()).filter(Boolean);
+      const nextIsShort = next.length <= 150 && nextLines.length <= 3;
+      const currIsLong = curr.length > 100;
+
+      if (currIsLong && nextIsShort) {
+        // New format: curr=joke, next=description
+        jokes.push({ firstLine: currLines[0], description: nextLines.join(' ') });
+        i += 2;
+        continue;
       }
-      return jokes;
     }
 
-    function CopyIcon({ copied }) {
-      return copied ? (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="20 6 9 17 4 12" />
-        </svg>
-      ) : (
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-        </svg>
-      );
+    // Old format: last line of block = description
+    if (currLines.length >= 2) {
+      jokes.push({ firstLine: currLines[0], description: currLines[currLines.length - 1] });
     }
+    i++;
+  }
 
-    function JokeCard({ joke, index }) {
-      const [copied, setCopied] = useState(false);
-      const handleCopy = useCallback(() => {
-        navigator.clipboard.writeText(`${joke.description} ${HASHTAGS}`).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        });
-      }, [joke.description]);
+  return jokes;
+}
 
-      const [borderColor, setBorderColor] = useState("rgba(255,255,255,0.08)");
-
-      return (
-        <div
-          style={{
-            background: "rgba(255,255,255,0.04)",
-            border: `1px solid ${borderColor}`,
-            borderRadius: "12px",
-            padding: "14px 16px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "7px",
-            position: "relative",
-            transition: "border-color 0.2s",
-          }}
-          onMouseEnter={() => setBorderColor("rgba(255,200,80,0.25)")}
-          onMouseLeave={() => setBorderColor("rgba(255,255,255,0.08)")}
-        >
-          <span style={{
-            position: "absolute", top: "10px", left: "13px",
-            fontSize: "9px", fontWeight: "700", letterSpacing: "0.12em",
-            color: "rgba(255,200,80,0.4)", fontFamily: "'DM Mono', monospace",
-          }}>
-            {String(index + 1).padStart(2, "0")}
-          </span>
-
-          <p style={{
-            margin: "0 0 0 26px", fontSize: "11.5px", lineHeight: "1.5",
-            color: "rgba(255,255,255,0.28)", fontStyle: "italic",
-            fontFamily: "'Lora', Georgia, serif", paddingRight: "32px",
-            overflow: "hidden", display: "-webkit-box",
-            WebkitLineClamp: 1, WebkitBoxOrient: "vertical",
-          }}>
-            {joke.firstLine}…
-          </p>
-
-          <div style={{ height: "1px", background: "linear-gradient(90deg, rgba(255,200,80,0.15), transparent)", margin: "1px 0" }} />
-
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-            <p style={{
-              margin: 0, flex: 1, fontSize: "13.5px", lineHeight: "1.55",
-              color: "rgba(255,255,255,0.9)", fontFamily: "'Lora', Georgia, serif", fontWeight: "500",
-            }}>
-              {joke.description}
-            </p>
-            <button
-              onClick={handleCopy}
-              title="Copy description + hashtags"
-              style={{
-                flexShrink: 0, marginTop: "1px",
-                background: copied ? "rgba(255,200,80,0.15)" : "rgba(255,255,255,0.05)",
-                border: `1px solid ${copied ? "rgba(255,200,80,0.4)" : "rgba(255,255,255,0.1)"}`,
-                borderRadius: "7px",
-                color: copied ? "rgb(255,200,80)" : "rgba(255,255,255,0.4)",
-                cursor: "pointer", padding: "5px 7px",
-                display: "flex", alignItems: "center", gap: "4px",
-                fontSize: "10px", fontFamily: "'DM Mono', monospace", transition: "all 0.15s",
-              }}
-            >
-              <CopyIcon copied={copied} />
-              {copied ? "Copied!" : "Copy"}
-            </button>
-          </div>
+function render() {
+  const container = document.getElementById('batches');
+  if (batches.length === 0) { container.innerHTML = ''; return; }
+  let html = '';
+  batches.forEach((batch, bi) => {
+    html += `<div class="batch">
+      <div class="batch-header">
+        <span class="batch-label">Batch ${String(bi+1).padStart(2,'0')} · ${batch.length} joke${batch.length!==1?'s':''}</span>
+        <button class="close-btn" onclick="removeBatch(${bi})">×</button>
+      </div>
+      <div class="cards">`;
+    batch.forEach((joke, ji) => {
+      const id = `copy-${bi}-${ji}`;
+      html += `<div class="card">
+        <span class="card-num">${String(ji+1).padStart(2,'0')}</span>
+        <p class="card-first">${esc(joke.firstLine)}…</p>
+        <div class="divider"></div>
+        <div class="card-bottom">
+          <p class="card-desc">${esc(joke.description)}</p>
+          <button class="copy-btn" id="${id}" onclick="copyDesc(${bi},${ji},'${id}')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy
+          </button>
         </div>
-      );
-    }
+      </div>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `<p class="footer-note">Copies: description + ${HASHTAGS}</p>`;
+  container.innerHTML = html;
+}
 
-    function BatchGroup({ batch, batchIndex, onRemove }) {
-      return (
-        <div style={{
-          background: "rgba(255,255,255,0.025)",
-          border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: "18px",
-          padding: "20px 20px 18px",
-          position: "relative",
-          marginBottom: "16px",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-            <span style={{
-              fontSize: "10px", fontFamily: "'DM Mono', monospace",
-              letterSpacing: "0.15em", textTransform: "uppercase",
-              color: "rgba(255,200,80,0.55)",
-            }}>
-              Batch {String(batchIndex + 1).padStart(2, "0")} · {batch.length} joke{batch.length !== 1 ? "s" : ""}
-            </span>
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-            <button
-              onClick={onRemove}
-              title="Remove this batch"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "7px",
-                color: "rgba(255,255,255,0.35)",
-                cursor: "pointer",
-                width: "26px", height: "26px",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: "14px", lineHeight: 1,
-                transition: "all 0.15s",
-                padding: 0,
-              }}
-            >
-              ×
-            </button>
-          </div>
+function removeBatch(i) { batches.splice(i,1); render(); }
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            {batch.map((joke, i) => (
-              <JokeCard key={i} joke={joke} index={i} />
-            ))}
-          </div>
-        </div>
-      );
-    }
+function copyDesc(bi, ji, btnId) {
+  const text = batches[bi][ji].description + ' ' + HASHTAGS;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.classList.add('copied');
+    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+    }, 2000);
+  });
+}
 
-    function App() {
-      const [input, setInput] = useState("");
-      const [batches, setBatches] = useState([]);
-      const textareaRef = useRef(null);
+async function handlePaste() {
+  try {
+    const text = await navigator.clipboard.readText();
+    document.getElementById('input').value = text;
+    updateBtn();
+  } catch { document.getElementById('input').focus(); }
+}
 
-      const handlePaste = useCallback(async () => {
-        try {
-          const text = await navigator.clipboard.readText();
-          setInput(text);
-        } catch {
-          textareaRef.current?.focus();
-        }
-      }, []);
+function handleClear() { document.getElementById('input').value = ''; updateBtn(); }
 
-      const handleClearInput = useCallback(() => setInput(""), []);
+function handleExtract() {
+  const val = document.getElementById('input').value;
+  if (!val.trim()) return;
+  const result = parseJokes(val);
+  if (!result.length) return;
+  batches.push(result);
+  render();
+  document.getElementById('input').value = '';
+  updateBtn();
+}
 
-      const handleExtract = useCallback(() => {
-        if (!input.trim()) return;
-        const result = parseJokes(input);
-        if (result.length === 0) return;
-        setBatches(prev => [...prev, result]);
-        setInput("");
-      }, [input]);
+function updateBtn() {
+  document.getElementById('goBtn').disabled = !document.getElementById('input').value.trim();
+}
 
-      const handleRemoveBatch = useCallback((idx) => {
-        setBatches(prev => prev.filter((_, i) => i !== idx));
-      }, []);
-
-      const btnBase = {
-        border: "1px solid rgba(255,200,80,0.2)",
-        borderRadius: "8px",
-        background: "rgba(255,200,80,0.07)",
-        color: "rgba(255,200,80,0.55)",
-        cursor: "pointer",
-        padding: "7px 11px",
-        fontSize: "13px",
-        fontFamily: "'DM Mono', monospace",
-        display: "flex", alignItems: "center", gap: "6px",
-        transition: "all 0.15s",
-      };
-
-      return (
-        <div style={{
-          minHeight: "100vh",
-          background: "#0f0e0d",
-          backgroundImage: "radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,200,80,0.07) 0%, transparent 60%)",
-          fontFamily: "'Lora', Georgia, serif",
-          padding: "40px 20px 60px",
-          boxSizing: "border-box",
-        }}>
-          <div style={{ textAlign: "center", marginBottom: "36px" }}>
-            <div style={{
-              display: "inline-block", fontSize: "10px", fontFamily: "'DM Mono', monospace",
-              letterSpacing: "0.2em", color: "rgba(255,200,80,0.6)", textTransform: "uppercase",
-              marginBottom: "12px", background: "rgba(255,200,80,0.07)",
-              padding: "4px 14px", borderRadius: "20px", border: "1px solid rgba(255,200,80,0.15)",
-            }}>
-              Joke Parser
-            </div>
-            <h1 style={{
-              margin: 0, fontSize: "clamp(26px, 5vw, 40px)", fontWeight: "600",
-              color: "rgba(255,255,255,0.92)", lineHeight: "1.2", letterSpacing: "-0.01em",
-            }}>
-              Anecdote Description<br />
-              <span style={{ color: "rgba(255,200,80,0.85)" }}>Extractor</span>
-            </h1>
-            <p style={{ margin: "12px 0 0", color: "rgba(255,255,255,0.3)", fontSize: "13px", fontFamily: "'DM Mono', monospace" }}>
-              Paste jokes → extract → copy descriptions with hashtags
-            </p>
-          </div>
-
-          <div style={{ maxWidth: "760px", margin: "0 auto 32px" }}>
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              placeholder={"Paste your anecdotes here...\n\nEach block: joke text → blank line → short description → blank line → next joke."}
-              rows={10}
-              style={{
-                width: "100%",
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "14px",
-                padding: "18px 20px",
-                color: "rgba(255,255,255,0.82)",
-                fontSize: "14px", lineHeight: "1.7",
-                fontFamily: "'Lora', Georgia, serif",
-                transition: "border-color 0.2s, box-shadow 0.2s",
-              }}
-            />
-
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
-              <div style={{ display: "flex", gap: "8px" }}>
-                <button onClick={handlePaste} title="Paste from clipboard" style={btnBase}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                  </svg>
-                </button>
-
-                <button onClick={handleClearInput} title="Clear input" style={btnBase}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
-                </button>
-              </div>
-
-              <button
-                onClick={handleExtract}
-                disabled={!input.trim()}
-                title="Extract descriptions"
-                style={{
-                  background: input.trim() ? "rgb(255,200,80)" : "rgba(255,255,255,0.06)",
-                  border: "1px solid transparent",
-                  borderRadius: "10px",
-                  color: input.trim() ? "#1a1500" : "rgba(255,255,255,0.2)",
-                  cursor: input.trim() ? "pointer" : "not-allowed",
-                  width: "42px", height: "38px",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.15s",
-                  flexShrink: 0,
-                }}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {batches.length > 0 && (
-            <div style={{ maxWidth: "760px", margin: "0 auto" }}>
-              {batches.map((batch, batchIdx) => (
-                <BatchGroup
-                  key={batchIdx}
-                  batch={batch}
-                  batchIndex={batchIdx}
-                  onRemove={() => handleRemoveBatch(batchIdx)}
-                />
-              ))}
-              <p style={{
-                textAlign: "center", marginTop: "8px",
-                fontSize: "10px", fontFamily: "'DM Mono', monospace",
-                color: "rgba(255,255,255,0.15)", letterSpacing: "0.08em",
-              }}>
-                Copies: description + {HASHTAGS}
-              </p>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    const root = ReactDOM.createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+document.getElementById('input').addEventListener('input', updateBtn);
+</script>
 </body>
 </html>
