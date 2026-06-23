@@ -198,14 +198,16 @@ function parseJokes(text) {
       const currIsLong = curr.length > 100;
 
       if (currIsLong && nextIsShort) {
-        jokes.push({ firstLine: currLines[0], description: nextLines.join(' ') });
+        let cleanDesc = nextLines.join(' ').replace(/^\*+|\*+$/g, '').trim();
+        jokes.push({ firstLine: currLines[0], description: cleanDesc });
         i += 2;
         continue;
       }
     }
 
     if (currLines.length >= 2) {
-      jokes.push({ firstLine: currLines[0], description: currLines[currLines.length - 1] });
+      let cleanDesc = currLines[currLines.length - 1].replace(/^\*+|\*+$/g, '').trim();
+      jokes.push({ firstLine: currLines[0], description: cleanDesc });
     }
     i++;
   }
