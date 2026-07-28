@@ -1,319 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Anecdote Description Extractor</title>
-  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      min-height: 100vh;
-      background: #0f0e0d;
-      background-image: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,200,80,0.07) 0%, transparent 60%);
-      font-family: 'Lora', Georgia, serif;
-      padding: 40px 20px 60px;
-      color: rgba(255,255,255,0.9);
-    }
-    textarea { resize: vertical; }
-    textarea::placeholder { color: rgba(255,255,255,0.18); }
-    textarea:focus { outline: none; border-color: rgba(255,200,80,0.35) !important; box-shadow: 0 0 0 3px rgba(255,200,80,0.05); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-    .header { text-align: center; margin-bottom: 36px; }
-    .badge {
-      display: inline-block; font-size: 10px; font-family: 'DM Mono', monospace;
-      letter-spacing: 0.2em; color: rgba(255,200,80,0.6); text-transform: uppercase;
-      margin-bottom: 12px; background: rgba(255,200,80,0.07);
-      padding: 4px 14px; border-radius: 20px; border: 1px solid rgba(255,200,80,0.15);
-    }
-    h1 { font-size: clamp(26px,5vw,40px); font-weight: 600; color: rgba(255,255,255,0.92); line-height: 1.2; }
-    h1 span { color: rgba(255,200,80,0.85); }
-    .subtitle { margin-top: 12px; color: rgba(255,255,255,0.3); font-size: 13px; font-family: 'DM Mono', monospace; }
-    .main { max-width: 760px; margin: 0 auto 32px; }
-    textarea.input {
-      width: 100%; background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.1); border-radius: 14px;
-      padding: 18px 20px; color: rgba(255,255,255,0.82);
-      font-size: 14px; line-height: 1.7; font-family: 'Lora', Georgia, serif;
-      transition: border-color 0.2s;
-    }
-    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-    .left { display: flex; gap: 8px; }
-    .icon-btn {
-      border: 1px solid rgba(255,200,80,0.2); border-radius: 8px;
-      background: rgba(255,200,80,0.07); color: rgba(255,200,80,0.55);
-      cursor: pointer; padding: 7px 11px; font-size: 13px;
-      font-family: 'DM Mono', monospace; display: flex; align-items: center; gap: 6px;
-      transition: all 0.15s;
-    }
-    .icon-btn:hover { background: rgba(255,200,80,0.15); color: rgba(255,200,80,0.9); border-color: rgba(255,200,80,0.35); }
-    .icon-btn.danger:hover { background: rgba(255,80,80,0.12); color: rgba(255,120,120,0.9); border-color: rgba(255,80,80,0.3); }
-    .go-btn {
-      background: rgb(255,200,80); border: none; border-radius: 10px;
-      color: #1a1500; cursor: pointer; width: 42px; height: 38px;
-      display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0;
-    }
-    .go-btn:disabled { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.2); cursor: not-allowed; }
-    .go-btn:not(:disabled):hover { background: rgb(255,215,100); }
-    .batches { max-width: 760px; margin: 0 auto; }
-    .batch {
-      background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 18px; padding: 20px 20px 18px; margin-bottom: 16px;
-    }
-    .batch-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .batch-label { font-size: 10px; font-family: 'DM Mono', monospace; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,200,80,0.55); }
-    .close-btn {
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 7px; color: rgba(255,255,255,0.35); cursor: pointer;
-      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
-      font-size: 18px; line-height: 1; transition: all 0.15s; padding: 0;
-    }
-    .close-btn:hover { background: rgba(255,80,80,0.15); border-color: rgba(255,80,80,0.3); color: rgba(255,120,120,0.9); }
-    .cards { display: flex; flex-direction: column; gap: 8px; }
-    .card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 7px;
-      position: relative; transition: border-color 0.2s;
-    }
-    .card:hover { border-color: rgba(255,200,80,0.25); }
-    .card-num { position: absolute; top: 10px; left: 13px; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: rgba(255,200,80,0.4); font-family: 'DM Mono', monospace; }
-    .card-first {
-      margin: 0 0 0 26px; font-size: 11.5px; line-height: 1.5;
-      color: rgba(255,255,255,0.28); font-style: italic; font-family: 'Lora', Georgia, serif;
-      padding-right: 32px; overflow: hidden; display: -webkit-box;
-      -webkit-line-clamp: 1; -webkit-box-orient: vertical;
-    }
-    .divider { height: 1px; background: linear-gradient(90deg, rgba(255,200,80,0.15), transparent); margin: 1px 0; }
-    .card-bottom { display: flex; align-items: flex-start; gap: 10px; }
-    .card-desc { margin: 0; flex: 1; font-size: 13.5px; line-height: 1.55; color: rgba(255,255,255,0.9); font-family: 'Lora', Georgia, serif; font-weight: 500; }
-    .copy-btn {
-      flex-shrink: 0; margin-top: 1px;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 7px; color: rgba(255,255,255,0.4); cursor: pointer;
-      padding: 5px 7px; display: flex; align-items: center; gap: 4px;
-      font-size: 10px; font-family: 'DM Mono', monospace; transition: all 0.15s;
-    }
-    .copy-btn:hover { background: rgba(255,200,80,0.1); color: rgba(255,200,80,0.8); border-color: rgba(255,200,80,0.3); }
-    .copy-btn.copied { background: rgba(255,200,80,0.15); border-color: rgba(255,200,80,0.4); color: rgb(255,200,80); }
-    .footer-note { text-align: center; margin-top: 8px; font-size: 10px; font-family: 'DM Mono', monospace; color: rgba(255,255,255,0.15); letter-spacing: 0.08em; }
-    .saved-indicator {
-      font-size: 10px; font-family: 'DM Mono', monospace;
-      color: rgba(255,200,80,0.4); letter-spacing: 0.08em;
-      display: flex; align-items: center; gap: 5px;
-    }
-    .saved-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,200,80,0.5); }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Anecdote Image Maker</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  @font-face{font-family:'CalSans';src:url('data:font/truetype;base64,__FONT__') format('truetype');font-weight:normal;}
+  body{min-height:100vh;background:#0f0e0d;background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(255,200,80,0.07) 0%,transparent 60%);font-family:Georgia,serif;padding:36px 16px 60px;color:rgba(255,255,255,0.9);}
+  textarea::placeholder{color:rgba(255,255,255,0.18);}
+  textarea:focus{outline:none;border-color:rgba(255,200,80,0.35)!important;}
+  ::-webkit-scrollbar{width:6px;}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px;}
+  .header{text-align:center;margin-bottom:32px;}
+  .badge{display:inline-block;font-size:10px;font-family:monospace;letter-spacing:.2em;color:rgba(255,200,80,.6);text-transform:uppercase;margin-bottom:12px;background:rgba(255,200,80,.07);padding:4px 14px;border-radius:20px;border:1px solid rgba(255,200,80,.15);}
+  h1{font-size:clamp(24px,5vw,36px);font-weight:600;color:rgba(255,255,255,.92);line-height:1.2;}
+  h1 span{color:rgba(255,200,80,.85);}
+  .subtitle{margin-top:10px;color:rgba(255,255,255,.3);font-size:12px;font-family:monospace;}
+  .container{max-width:720px;margin:0 auto 28px;}
+  textarea.input{width:100%;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:16px 18px;color:rgba(255,255,255,.82);font-size:14px;line-height:1.7;font-family:Georgia,serif;resize:vertical;}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-top:10px;}
+  .left-btns{display:flex;gap:8px;}
+  .icon-btn{background:rgba(255,200,80,.07);border:1px solid rgba(255,200,80,.2);border-radius:8px;color:rgba(255,200,80,.6);cursor:pointer;padding:7px 11px;font-size:13px;font-family:monospace;display:flex;align-items:center;gap:6px;}
+  .go-btn{background:rgb(255,200,80);border:none;border-radius:10px;color:#1a1500;cursor:pointer;width:42px;height:38px;display:flex;align-items:center;justify-content:center;}
+  .go-btn:disabled{background:rgba(255,255,255,.06);color:rgba(255,255,255,.2);cursor:not-allowed;}
+  .results{max-width:720px;margin:0 auto;}
+  .results-label{font-size:10px;font-family:monospace;letter-spacing:.15em;text-transform:uppercase;color:rgba(255,200,80,.55);margin-bottom:16px;}
+  .cards{display:flex;flex-direction:column;gap:12px;}
+  .card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:14px;}
+  .thumb{width:70px;height:105px;object-fit:cover;border-radius:6px;border:1px solid rgba(255,255,255,.1);flex-shrink:0;}
+  .card-info{flex:1;min-width:0;}
+  .card-num{font-size:9px;font-family:monospace;color:rgba(255,200,80,.5);margin-bottom:5px;letter-spacing:.12em;}
+  .card-desc{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5;font-family:Georgia,serif;font-style:italic;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .dl-btn{background:rgb(255,200,80);border-radius:9px;color:#1a1500;padding:9px 16px;font-size:12px;font-weight:600;font-family:monospace;text-decoration:none;display:flex;align-items:center;gap:6px;flex-shrink:0;}
+  .spinner{animation:spin .8s linear infinite;transform-origin:center;}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .error-msg{background:rgba(255,80,80,.08);border:1px solid rgba(255,80,80,.2);border-radius:10px;padding:12px 16px;color:rgba(255,120,120,.9);font-size:13px;font-family:monospace;margin-top:12px;}
+  .debug{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 14px;color:rgba(255,255,255,.35);font-size:11px;font-family:monospace;margin-top:10px;}
+</style>
 </head>
 <body>
-
 <div class="header">
-  <div class="badge">Joke Parser</div>
-  <h1>Anecdote Description<br><span>Extractor</span></h1>
-  <p class="subtitle">Paste jokes → extract → copy descriptions with hashtags</p>
+  <div class="badge">Image Generator</div>
+  <h1>Anecdote<br><span>Image Maker</span></h1>
+  <p class="subtitle">2000×3000 · Cal Sans · White background</p>
 </div>
-
-<div class="main">
-  <textarea class="input" id="input" rows="10" placeholder="Paste your anecdotes here..."></textarea>
+<div class="container">
+  <textarea class="input" id="input" rows="10" placeholder="Paste jokes separated by --- ..."></textarea>
   <div class="toolbar">
-    <div class="left">
-      <button class="icon-btn" onclick="handlePaste()" title="Paste">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-        </svg>
+    <div class="left-btns">
+      <button class="icon-btn" onclick="handlePaste()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
       </button>
-      <button class="icon-btn" onclick="handleClear()" title="Clear input">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-      <button class="icon-btn danger" onclick="handleClearAll()" title="Clear all saved results">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-        </svg>
-        Clear all
+      <button class="icon-btn" onclick="handleClear()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <span class="saved-indicator" id="savedIndicator" style="display:none;">
-        <span class="saved-dot"></span> saved
-      </span>
-      <button class="go-btn" id="goBtn" onclick="handleExtract()" disabled>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-        </svg>
-      </button>
-    </div>
+    <button class="go-btn" id="goBtn" onclick="handleExtract()" disabled>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </button>
   </div>
+  <div id="errorMsg" class="error-msg" style="display:none;"></div>
+  <div id="debugMsg" class="debug" style="display:none;"></div>
 </div>
-
-<div class="batches" id="batches"></div>
+<div class="results" id="results" style="display:none;">
+  <div class="results-label" id="resultsLabel"></div>
+  <div class="cards" id="cards"></div>
+</div>
 
 <script>
-const HASHTAGS = "#anecdote #jokes #humor";
-const STORAGE_KEY = "anecdote_batches";
-let batches = [];
+// ── PARSER ──────────────────────────────────────────────────────────────────
+// Splits on --- regardless of what surrounds it (newlines, spaces, or nothing).
+// Inside each segment finds the *description* pattern or uses the last line.
+function parseJokes(raw) {
+  // Normalize: \r\n → \n, \r → \n
+  raw = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-// Load from localStorage on start
-function loadFromStorage() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      batches = JSON.parse(saved);
-    }
-  } catch(e) {
-    batches = [];
-  }
-}
+  // Split on --- that appears as a standalone "word" (surrounded by any whitespace or start/end)
+  // This regex handles:  \n---\n  |  ---\n  |  \n---  |  just ---  with surrounding spaces
+  const segments = raw.split(/\s*\n\s*---\s*\n\s*|\s*---\s*\n|\n\s*---\s*/)
+                      .map(s => s.trim()).filter(Boolean);
 
-// Save to localStorage
-function saveToStorage() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(batches));
-    showSavedIndicator();
-  } catch(e) {}
-}
+  // Fallback: if splitting by --- gave only 1 segment, try splitting differently
+  // (handles case where --- has no newlines, e.g. "joke text---next joke")
+  const finalSegments = segments.length > 1
+    ? segments
+    : raw.split(/---/).map(s => s.trim()).filter(Boolean);
 
-function showSavedIndicator() {
-  const el = document.getElementById('savedIndicator');
-  el.style.display = 'flex';
-  clearTimeout(window._saveTimer);
-  window._saveTimer = setTimeout(() => { el.style.display = 'none'; }, 2000);
-}
-
-function parseJokes(text) {
-  const blocks = text.trim().split(/\n[ \t]*\n/).map(b => b.trim()).filter(Boolean);
   const jokes = [];
-  let i = 0;
+  for (const seg of finalSegments) {
+    // Extract *description* — a line that starts with * and ends with *
+    // Use the LAST such line found (in case joke text contains asterisks)
+    const lines = seg.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
 
-  while (i < blocks.length) {
-    const curr = blocks[i];
-    const currLines = curr.split('\n').map(l => l.trim()).filter(Boolean);
-
-    if (i + 1 < blocks.length) {
-      const next = blocks[i + 1];
-      const nextLines = next.split('\n').map(l => l.trim()).filter(Boolean);
-      const nextIsShort = next.length <= 150 && nextLines.length <= 3;
-      const currIsLong = curr.length > 100;
-
-      if (currIsLong && nextIsShort) {
-        let cleanDesc = nextLines.join(' ').replace(/^\*+|\*+$/g, '').trim();
-        jokes.push({ firstLine: currLines[0], description: cleanDesc });
-        i += 2;
-        continue;
-      }
+    let descIdx = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (/^\*.+\*$/.test(lines[i])) { descIdx = i; break; }
     }
 
-    if (currLines.length >= 2) {
-      let cleanDesc = currLines[currLines.length - 1].replace(/^\*+|\*+$/g, '').trim();
-      jokes.push({ firstLine: currLines[0], description: cleanDesc });
+    let description, jokeLines;
+    if (descIdx !== -1) {
+      description = lines[descIdx].replace(/^\*|\*$/g, '').trim();
+      jokeLines   = lines.filter((_, i) => i !== descIdx);
+    } else {
+      // No *desc* found — last line is description
+      description = lines[lines.length - 1];
+      jokeLines   = lines.slice(0, -1);
     }
-    i++;
+
+    const jokeText = jokeLines.join(' ').trim();
+    if (jokeText) jokes.push({ jokeText, description });
   }
 
   return jokes;
 }
 
-function render() {
-  const container = document.getElementById('batches');
-  if (batches.length === 0) { container.innerHTML = ''; return; }
-  let html = '';
-  batches.forEach((batch, bi) => {
-    html += `<div class="batch">
-      <div class="batch-header">
-        <span class="batch-label">Batch ${String(bi+1).padStart(2,'0')} · ${batch.length} joke${batch.length!==1?'s':''}</span>
-        <button class="close-btn" onclick="removeBatch(${bi})">×</button>
-      </div>
-      <div class="cards">`;
-    batch.forEach((joke, ji) => {
-      const id = `copy-${bi}-${ji}`;
-      html += `<div class="card">
-        <span class="card-num">${String(ji+1).padStart(2,'0')}</span>
-        <p class="card-first">${esc(joke.firstLine)}…</p>
-        <div class="divider"></div>
-        <div class="card-bottom">
-          <p class="card-desc">${esc(joke.description)}</p>
-          <button class="copy-btn" id="${id}" onclick="copyDesc(${bi},${ji},'${id}')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-            </svg>
-            Copy
-          </button>
-        </div>
-      </div>`;
-    });
-    html += `</div></div>`;
-  });
-  html += `<p class="footer-note">Copies: description + ${HASHTAGS}</p>`;
-  container.innerHTML = html;
-}
+// ── IMAGE GENERATOR ─────────────────────────────────────────────────────────
+const IMG_W = 2000, IMG_H = 3000, PAD = 160;
 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+async function generateImage(jokeText) {
+  await document.fonts.ready;
+  const canvas = document.createElement('canvas');
+  canvas.width = IMG_W; canvas.height = IMG_H;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, IMG_W, IMG_H);
 
-function removeBatch(i) {
-  batches.splice(i,1);
-  saveToStorage();
-  render();
-}
+  const maxW = IMG_W - PAD * 2;
+  const maxH = IMG_H - PAD * 2;
 
-function handleClearAll() {
-  if (batches.length === 0) return;
-  if (confirm('Удалить все сохранённые результаты?')) {
-    batches = [];
-    localStorage.removeItem(STORAGE_KEY);
-    render();
+  function wrapText(txt, size) {
+    ctx.font = `${size}px 'CalSans', Georgia, sans-serif`;
+    const words = txt.split(' ');
+    const lines = []; let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+      else line = test;
+    }
+    if (line) lines.push(line);
+    return lines;
   }
+
+  // Binary-search best font size
+  let lo = 40, hi = 220, bestSize = lo, bestLines = wrapText(jokeText, lo);
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const lines = wrapText(jokeText, mid);
+    if (lines.length * mid * 1.25 <= maxH) { bestSize = mid; bestLines = lines; lo = mid + 1; }
+    else hi = mid - 1;
+  }
+
+  const lineH  = bestSize * 1.25;
+  const totalH = bestLines.length * lineH;
+  const startY = PAD + (maxH - totalH) / 2 + bestSize * 0.82;
+
+  ctx.fillStyle = '#000000';
+  ctx.font = `${bestSize}px 'CalSans', Georgia, sans-serif`;
+  ctx.textAlign = 'center';
+  bestLines.forEach((l, i) => ctx.fillText(l, IMG_W / 2, startY + i * lineH));
+
+  return canvas.toDataURL('image/png');
 }
 
-function copyDesc(bi, ji, btnId) {
-  const text = batches[bi][ji].description + ' ' + HASHTAGS;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    btn.classList.add('copied');
-    btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
-    setTimeout(() => {
-      btn.classList.remove('copied');
-      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
-    }, 2000);
-  });
-}
-
-async function handlePaste() {
-  try {
-    const text = await navigator.clipboard.readText();
-    document.getElementById('input').value = text;
-    updateBtn();
-  } catch { document.getElementById('input').focus(); }
-}
-
-function handleClear() { document.getElementById('input').value = ''; updateBtn(); }
-
-function handleExtract() {
-  const val = document.getElementById('input').value;
-  if (!val.trim()) return;
-  const result = parseJokes(val);
-  if (!result.length) return;
-  batches.push(result);
-  saveToStorage();
-  render();
-  document.getElementById('input').value = '';
-  updateBtn();
-}
-
+// ── UI ──────────────────────────────────────────────────────────────────────
 function updateBtn() {
   document.getElementById('goBtn').disabled = !document.getElementById('input').value.trim();
 }
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+function showDebug(msg) {
+  const el = document.getElementById('debugMsg');
+  el.textContent = msg; el.style.display = msg ? 'block' : 'none';
+}
+function setLoading(on) {
+  const btn = document.getElementById('goBtn');
+  btn.innerHTML = on
+    ? `<svg class="spinner" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10"/></svg>`
+    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+  btn.disabled = on;
+  if (!on) updateBtn();
+}
+async function handlePaste() {
+  try {
+    document.getElementById('input').value = await navigator.clipboard.readText();
+    updateBtn();
+  } catch { document.getElementById('input').focus(); }
+}
+function handleClear() {
+  document.getElementById('input').value = '';
+  document.getElementById('results').style.display = 'none';
+  showError(''); showDebug(''); updateBtn();
+}
+async function handleExtract() {
+  const input = document.getElementById('input').value;
+  if (!input.trim()) return;
+  showError(''); showDebug(''); setLoading(true);
+  try {
+    const jokes = parseJokes(input);
 
+    // Debug: show how many segments were found
+    showDebug(`Found ${jokes.length} jokes. Preview: ${jokes.map((j,i)=>`[${i+1}] ${j.jokeText.slice(0,30)}...`).join(' | ')}`);
+
+    if (!jokes.length) {
+      showError('No jokes found. Make sure jokes are separated by ---');
+      return;
+    }
+
+    const cardsEl = document.getElementById('cards');
+    cardsEl.innerHTML = '';
+    document.getElementById('resultsLabel').textContent =
+      jokes.length + ' image' + (jokes.length !== 1 ? 's' : '') + ' ready';
+    document.getElementById('results').style.display = 'block';
+
+    for (let i = 0; i < jokes.length; i++) {
+      const { jokeText, description } = jokes[i];
+      const src = await generateImage(jokeText);
+      const num = String(i + 1).padStart(2, '0');
+      const div = document.createElement('div');
+      div.className = 'card';
+      div.innerHTML = `
+        <img class="thumb" src="${src}" alt="Joke ${num}"/>
+        <div class="card-info">
+          <div class="card-num">${num} · 2000×3000 PNG</div>
+          <p class="card-desc">${esc(description)}</p>
+        </div>
+        <a class="dl-btn" href="${src}" download="joke-${num}.png">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          PNG
+        </a>`;
+      cardsEl.appendChild(div);
+    }
+  } finally { setLoading(false); }
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 document.getElementById('input').addEventListener('input', updateBtn);
-
-// Init
-loadFromStorage();
-render();
 </script>
 </body>
-</html>
+</html>'''
+
+html = html.replace('__FONT__', font_b64)
+
+with open('/home/claude/joke-maker-v2.html', 'w') as f:
+    f.write(html)
+print(f"Written {len(html):,} chars")
+PYEOF
