@@ -136,37 +136,40 @@
 const HASHTAGS = "#anecdote #jokes #humor";
 let batches = [];
 
-function parseJokes(text) {
-  const blocks = text.trim().split(/\n[ \t]*\n/).map(b => b.trim()).filter(Boolean);
-  const jokes = [];
-  let i = 0;
+// FIXED: split by --- first so short jokes are never skipped
+function parseJokes(raw) {
+  raw = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  while (i < blocks.length) {
-    const curr = blocks[i];
-    const currLines = curr.split('\n').map(l => l.trim()).filter(Boolean);
+  // Split by --- (primary format)
+  let segments = raw.split(/\s*\n\s*---\s*\n\s*/).map(s => s.trim()).filter(Boolean);
 
-    // Check if next block is a short description (new format)
-    if (i + 1 < blocks.length) {
-      const next = blocks[i + 1];
-      const nextLines = next.split('\n').map(l => l.trim()).filter(Boolean);
-      const nextIsShort = next.length <= 150 && nextLines.length <= 3;
-      const currIsLong = curr.length > 100;
-
-      if (currIsLong && nextIsShort) {
-        // New format: curr=joke, next=description
-        jokes.push({ firstLine: currLines[0], description: nextLines.join(' ') });
-        i += 2;
-        continue;
-      }
-    }
-
-    // Old format: last line of block = description
-    if (currLines.length >= 2) {
-      jokes.push({ firstLine: currLines[0], description: currLines[currLines.length - 1] });
-    }
-    i++;
+  // Fallback: blank-line separated (old format)
+  if (segments.length <= 1) {
+    segments = raw.trim().split(/\n[ \t]*\n/).map(s => s.trim()).filter(Boolean);
   }
 
+  const jokes = [];
+  for (const seg of segments) {
+    const lines = seg.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+
+    // Find *description* — last line wrapped in asterisks
+    let descIdx = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (/^\*.+\*$/.test(lines[i])) { descIdx = i; break; }
+    }
+
+    let description, firstLine;
+    if (descIdx !== -1) {
+      description = lines[descIdx].replace(/^\*|\*$/g, '').trim();
+      firstLine   = lines.find((_, i) => i !== descIdx) || lines[0];
+    } else {
+      description = lines[lines.length - 1];
+      firstLine   = lines[0];
+    }
+
+    if (description && firstLine) jokes.push({ firstLine, description });
+  }
   return jokes;
 }
 
