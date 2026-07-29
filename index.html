@@ -134,39 +134,52 @@
 
 <script>
 const HASHTAGS = "#anecdote #jokes #humor";
+const STORAGE_KEY = "joke_batches";
 let batches = [];
 
-function parseJokes(text) {
-  const blocks = text.trim().split(/\n[ \t]*\n/).map(b => b.trim()).filter(Boolean);
-  const jokes = [];
-  let i = 0;
+async function save() {
+  try {
+    await window.storage.set(STORAGE_KEY, JSON.stringify(batches));
+  } catch(e) {}
+}
 
-  while (i < blocks.length) {
-    const curr = blocks[i];
-    const currLines = curr.split('\n').map(l => l.trim()).filter(Boolean);
+async function loadSaved() {
+  try {
+    const result = await window.storage.get(STORAGE_KEY);
+    if (result && result.value) batches = JSON.parse(result.value);
+  } catch(e) { batches = []; }
+  render();
+}
 
-    // Check if next block is a short description (new format)
-    if (i + 1 < blocks.length) {
-      const next = blocks[i + 1];
-      const nextLines = next.split('\n').map(l => l.trim()).filter(Boolean);
-      const nextIsShort = next.length <= 150 && nextLines.length <= 3;
-      const currIsLong = curr.length > 100;
+function parseJokes(raw) {
+  raw = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-      if (currIsLong && nextIsShort) {
-        // New format: curr=joke, next=description
-        jokes.push({ firstLine: currLines[0], description: nextLines.join(' ') });
-        i += 2;
-        continue;
-      }
-    }
-
-    // Old format: last line of block = description
-    if (currLines.length >= 2) {
-      jokes.push({ firstLine: currLines[0], description: currLines[currLines.length - 1] });
-    }
-    i++;
+  let segments = raw.split(/\s*\n\s*---\s*\n\s*/).map(s => s.trim()).filter(Boolean);
+  if (segments.length <= 1) {
+    segments = raw.trim().split(/\n[ \t]*\n/).map(s => s.trim()).filter(Boolean);
   }
 
+  const jokes = [];
+  for (const seg of segments) {
+    const lines = seg.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) continue;
+
+    let descIdx = -1;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      if (/^\*.+\*$/.test(lines[i])) { descIdx = i; break; }
+    }
+
+    let description, firstLine;
+    if (descIdx !== -1) {
+      description = lines[descIdx].replace(/^\*|\*$/g, '').trim();
+      firstLine   = lines.find((_, i) => i !== descIdx) || lines[0];
+    } else {
+      description = lines[lines.length - 1];
+      firstLine   = lines[0];
+    }
+
+    if (description && firstLine) jokes.push({ firstLine, description });
+  }
   return jokes;
 }
 
@@ -209,7 +222,11 @@ function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-function removeBatch(i) { batches.splice(i,1); render(); }
+async function removeBatch(i) {
+  batches.splice(i, 1);
+  await save();
+  render();
+}
 
 function copyDesc(bi, ji, btnId) {
   const text = batches[bi][ji].description + ' ' + HASHTAGS;
@@ -235,12 +252,13 @@ async function handlePaste() {
 
 function handleClear() { document.getElementById('input').value = ''; updateBtn(); }
 
-function handleExtract() {
+async function handleExtract() {
   const val = document.getElementById('input').value;
   if (!val.trim()) return;
   const result = parseJokes(val);
   if (!result.length) return;
   batches.push(result);
+  await save();
   render();
   document.getElementById('input').value = '';
   updateBtn();
@@ -251,6 +269,9 @@ function updateBtn() {
 }
 
 document.getElementById('input').addEventListener('input', updateBtn);
+
+// Load on start
+loadSaved();
 </script>
 </body>
 </html>
