@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/extractor-final.html << 'ENDOFFILE'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -134,27 +135,30 @@
 
 <script>
 const HASHTAGS = "#anecdote #jokes #humor";
-const STORAGE_KEY = "joke_batches";
-let batches = [];
+const STORAGE_KEY = "joke_extractor_batches_v1";
 
-async function save() {
+// ── Storage helpers ──────────────────────────────────────────────────────────
+function storageSave(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+function storageLoad() {
   try {
-    await window.storage.set(STORAGE_KEY, JSON.stringify(batches));
-  } catch(e) {}
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch(e) { return []; }
 }
 
-async function loadSaved() {
-  try {
-    const result = await window.storage.get(STORAGE_KEY);
-    if (result && result.value) batches = JSON.parse(result.value);
-  } catch(e) { batches = []; }
-  render();
-}
+// ── State ────────────────────────────────────────────────────────────────────
+let batches = storageLoad();
 
+// ── Parser ───────────────────────────────────────────────────────────────────
 function parseJokes(raw) {
   raw = raw.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
+  // Split by --- (your format)
   let segments = raw.split(/\s*\n\s*---\s*\n\s*/).map(s => s.trim()).filter(Boolean);
+
+  // Fallback: blank lines (old format)
   if (segments.length <= 1) {
     segments = raw.trim().split(/\n[ \t]*\n/).map(s => s.trim()).filter(Boolean);
   }
@@ -164,6 +168,7 @@ function parseJokes(raw) {
     const lines = seg.split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) continue;
 
+    // Find *description* line (last line in asterisks)
     let descIdx = -1;
     for (let i = lines.length - 1; i >= 0; i--) {
       if (/^\*.+\*$/.test(lines[i])) { descIdx = i; break; }
@@ -183,9 +188,10 @@ function parseJokes(raw) {
   return jokes;
 }
 
+// ── Render ───────────────────────────────────────────────────────────────────
 function render() {
   const container = document.getElementById('batches');
-  if (batches.length === 0) { container.innerHTML = ''; return; }
+  if (!batches.length) { container.innerHTML = ''; return; }
   let html = '';
   batches.forEach((batch, bi) => {
     html += `<div class="batch">
@@ -222,9 +228,10 @@ function esc(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function removeBatch(i) {
+// ── Actions ──────────────────────────────────────────────────────────────────
+function removeBatch(i) {
   batches.splice(i, 1);
-  await save();
+  storageSave(batches);
   render();
 }
 
@@ -250,15 +257,18 @@ async function handlePaste() {
   } catch { document.getElementById('input').focus(); }
 }
 
-function handleClear() { document.getElementById('input').value = ''; updateBtn(); }
+function handleClear() {
+  document.getElementById('input').value = '';
+  updateBtn();
+}
 
-async function handleExtract() {
+function handleExtract() {
   const val = document.getElementById('input').value;
   if (!val.trim()) return;
   const result = parseJokes(val);
   if (!result.length) return;
   batches.push(result);
-  await save();
+  storageSave(batches);
   render();
   document.getElementById('input').value = '';
   updateBtn();
@@ -270,8 +280,9 @@ function updateBtn() {
 
 document.getElementById('input').addEventListener('input', updateBtn);
 
-// Load on start
-loadSaved();
+// Render saved data on page load
+render();
 </script>
 </body>
 </html>
+
